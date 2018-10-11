@@ -1,9 +1,42 @@
-### Các thuật ngữ cơ bản:
+### Quy trình tạo chỉ mục
 
-1 chỉ mục bao gồm 1 chuỗi các văn bản:
+- Tạo document:
 
-- Mỗi văn bản lfa 1 chuỗi các trường(field)
+  - Tạo đối tượng Document()
 
-- 1 trường là 1 chuỗi các thuật ngữ được đặt tên
+  ```Java
+  Document document = new Document();
+  ```
 
-- 1 thuật ngữ là 1 chuỗi các byte
+  - Tạo đối tượng Field()
+
+  ```Java
+  Field pathField = new StringField("path", file.toString(), Field.Store.YES);
+  ```
+
+  - ```add``` các field vào document
+
+  ```Java
+   document.add(filePathField);
+  ```
+
+- Tạo IndexWriter:
+
+  - Tạo đối tượng lucene Directory 
+
+  ```Java
+  Directory dir = FSDirectory.open(Paths.get(indexPath));
+  ```
+
+  - Tạo đối tượng IndexWriter với tham số đầu vào là directory trên
+
+  ```Java
+  IndexWriter writer = new IndexWriter(dir, iwc);
+  ```
+
+- Bắt đầu đánh chỉ mục
+
+```Java
+writer.addDocument(document);
+```
+
