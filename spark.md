@@ -32,7 +32,7 @@ Transform được thực hiện theo cách <i>lazily</i>, chỉ khi thực hi�
 
 Transform không làm thay đổi RDD gốc, nó trả về con trỏ đến RDD hoàn toàn mới, RDD ban đầu vẫn có thể sử dụng để làm việc khác. VIệc này dẫn đến các RDD được phân cấp tổ tiên, Spark lưu lại thông tin này trong đồ thị họ hàng(lineage graph).
 
-![](./img/spark_lineage_graph.png)
+<img src="./img/spark_lineage_graph.png" width="400"/>
 
 #### Actions
 
@@ -122,6 +122,58 @@ Spark đảm bảo accumulator được tăng 1 lần duy nhất khi thực hi�
 
 ### Biến Broadcast
 
-Biến global chỉ đọc giữa các worker.
+Biến toàn cục chỉ đọc giữa các worker, cho phép chương trình gửi tới tất cả các worker node để sử dụng trong 1 hay nhiều Spark operations.
 
+## Phân tán
 
+### Spark Runtime Architecture
+
+Spark sử dụng chế độ master/slave với 1 node điều phối trung tâm gọi là <b>driver</b> và nhiều node worker gọi là <b>excutor</b>.
+
+<img src="./img/spark_component.png" width = "400"/>
+
+1 driver và nhiều excutor của nó tạo thành 1 ứng dụng spark. 1 ứng dụng spark được triển khai trên các máy bằng 1 dịch vụ ngoài gọi là <i>cluster manager</i>. Spark được đóng gói kèm với bộ quản lí cluster có sẵn là Standalone, hoặc có thể hoạt động cùng với Hadoop YARN và Apache Mesos.
+
+#### Driver
+
+Driver là tiến trình mà hàm ```main()``` của chương trình được chạy. Nó là tiến trình chạy code của lập trình viên, tạo SparkContext,tạo RDD, thực hiện transform và action.
+
+Khi driver chạy, nó thực hiện 2 việc:
+
+- <i>Chuyển chương trình của user thành các task</i>:
+
+   Spark drive chịu trách nhiệm chuyển chương trình của người dùng thành các đơn vị thực thi vật lí gọi là các task. Ở mức cao, tất cả các ứng dụng Spark tuân theo 1 cấu trúc: tạo các RDD, thực hiện thao tác trên RDD để lấy và lưu trữ kết quả. Ở mức thấp, drive xác định các transformation và action cần thực hiện, mỗi hành động này là 1 task. Dựa trên luồng thực hiện của chương trình, các task này được sắp xếp thành 1 đồ thị có hướng không chứa chu trình(DAG) gọi là logical plan. Một số task liên tiếp nhau có thể gộp lại thành 1 <i>stage</i> tùy thuộc vào loại hành động. Các task cuối cùng được gói lại và chuẩn bị được gửi tới cluster. Task là đơn vị nhỏ nhất của công việc trong Spark, 1 chương trình có thể có hàng trăm tới hàng nghìn task.
+
+![](./img/spark_dag.png)
+
+- <i>Lập lịch thực các task trên executor</i>:
+
+   Executor tự đăng kí với driver, tại mọi thời điểm đều có thông tin đầy đủ về tất cả các executor của ứng dụng. Mỗi executor biểu diễn 1 tiến trình có khả năng thực hiện task và lưu trữ dữ liệu từ RDD.
+
+   Spark driver tìm trong tập các executor hiện có để lập lịch cho mỗi task vị trí phù hợp dựa trên vị trí của dữ liệu. Khi task được thực thi, có thể dữ liệu sẽ được cache lại, driver giữ thông tin về cache và sử dụng để lập lịch cho task sẽ truy cập dữ liệu cache này.
+
+#### Executor 
+
+là tiến trình chịu trách nhiệm thực hiện các task của 1 job Spark. Executor được khởi động khi bắt đầu chương trình và thường chạy cho đến khi chương trình kết thúc. 
+
+Nó có 2 vai trò: thực thi task trả kết quả cho driver; lưu RDD trong bộ nhớ chính.
+
+#### Cluster manager
+
+Cả driver và executor có thể chạy trong worker node của YARN.
+
+Các bước khi chạy ứng dụng Spark trong cluster:
+
+1. Người dùng gọi ```spark-submit``` để chạy ứng dụng
+
+2. ```spark-submit``` khởi động driver và gọi hàm ```main()```
+
+3. Driver liên lạc và yêu cầu cluster manager tài nguyên để khởi động các executor.
+
+4. Cluster manager khởi động executor 
+
+5. Driver gửi công việc cần thực hiện cho executor.
+
+6. Executor thực hiện các task và lưu kết quả.
+
+7. Nếu hàm ```main()``` kết thúc hoặc gọi ```SparkContext.stop()```, nó sẽ kết thúc các executor và trả tài nguyên cho cluster manager. 
