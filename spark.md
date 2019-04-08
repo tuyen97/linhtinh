@@ -48,6 +48,7 @@ Hữu ích khi dữ liệu được sử dụng lại nhiều lần trong các t
 
 Số phần nên bằng số core trong cluster.
 
+---
 ## Nạp và lưu dữ liệu
 
 ### File Formats
@@ -96,12 +97,14 @@ Có thể save bất kì thứ gì dưới dạng object dễ dàng.
 
 Ngoài các định dạng dữ liệu mà Spark cung cấp, ta có thể làm việc với tất cả các định dạng của Hadoop.
 
+---
 ## Filesystem 
 
 - Cục bộ: <i>files://</i>path
 
 - HDFS: ```hdfs://master:port/path```
 
+---
 ## Advanced Spark Progamming
 
 ### Accumulator
@@ -124,6 +127,7 @@ Spark đảm bảo accumulator được tăng 1 lần duy nhất khi thực hi�
 
 Biến toàn cục chỉ đọc giữa các worker, cho phép chương trình gửi tới tất cả các worker node để sử dụng trong 1 hay nhiều Spark operations.
 
+---
 ## Phân tán
 
 ### Spark Runtime Architecture
@@ -176,4 +180,48 @@ Các bước khi chạy ứng dụng Spark trong cluster:
 
 6. Executor thực hiện các task và lưu kết quả.
 
-7. Nếu hàm ```main()``` kết thúc hoặc gọi ```SparkContext.stop()```, nó sẽ kết thúc các executor và trả tài nguyên cho cluster manager. 
+7. Nếu hàm ```main()``` kết thúc hoặc gọi ```SparkContext.stop()```, nó sẽ kết thúc các executor và trả tài nguyên cho cluster manager.
+
+---
+## Spark Streaming
+
+Nếu như spark được xây dụng dựa trên ý tưởng các RDD, Spark Streaming được xây dựng trên <i>DStream</i>. Một DStream là 1 chuỗi dữ liệu đến theo thời gian. Mỗi DStream là 1 chuỗi của các RDD đến tại 1 thời điểm. DStream có thể được tạo từ nhiều nguồn khác nhau, ví dụ như Flume, Kafka, HDFS. Có 2 loại hành động trên DStream: <i>transformations</i>, tạo mới 1 DStream và <i>output operations</i>, ghi dữ liệu ra hệ thống bên ngoài. DStream cung cấp rất nhiều hành động tương tự trên RDD cộng thêm các hành động liên quan đến thời gian ví dụ như sliding windows.
+
+### Kiến trúc hệ thống
+
+Spark Streaming sử dụng kiến trúc "micro-batch", dòng dữ liệu được coi là 1 chuỗi các tính toán trên các batch dữ liệu. Nó nhận dữ liệu từ nhiều nguồn và nhóm chúng lại thành các batch. Các batch mới được tạo theo từng khoảng thời gian nhất định <i>batch interval</i>.Mỗi batch tạo nên 1 RDD và được xử lí qua các Spark jobs. Kết quả được đẩy qua các hệ thống bên ngoài theo từng batch.
+
+<img src="./img/spark_streaming_arch.png" width = "600"/>
+
+Ta có thể tạo DStream từ nguồn bên ngoài hoặc áp dụng <i>transformations</i> trên DStream khác. Ngoài các hành động như RDD, DStream còn có "stateful" transformation kết tập dữ liệu qua thời gian. 
+
+Với mỗi nguồn dữ liệu đầu vào, Spark Streaming khởi tạo 1 <i>receivers</i>, là task chạy trên excutor thu thập dữ liệu và lưu lại thành RDD.
+
+<img src="./img/spark_streaming_component.png" width = "600"/>
+
+Dữ liệu được copy sang node thứ hai để tăng khả năng chịu lỗi. 
+
+### Transformations
+
+#### Stateless 
+
+Mỗi batch được xử lí độc lập với batch trước nó, là các RDD transformation được áp dụng trên mỗi batch(hay mỗi RDD trong DStream). 
+
+Có thể kết hợp dữ liệu từ nhiều DStream tại mỗi thời điểm, ví dụ ```join()```, ```union()```...
+
+DStream còn cung cấp toán tử ```transform()``` cho phép thực hiện bất kì hàm RDD-to-RDD nào trên dòng dữ liệu. Hàm này được gọi trên mỗi batch dữ liệu của stream để tạo nên stream mới, ví dụ:
+
+```scala 
+val outlierDStream = accessLogsDStream.transform { rdd =>
+extractOutliers(rdd)
+}
+```
+
+#### Stateful
+
+Dữ liệu từ quá khứ được sử dụng để tạo ra dữ liệu hiện tại. Có 2 loại chính: thao tác cửa sổ, thực hiện trên cửa sổ trượt theo thời gian và ```updateStateByKey()```. Stateful yêu cầu checkpoint để chịu lỗi, ví dụ: ```ssc.checkpoint("hdfs://...")```
+
+- <b>Windowed transformations</b>:
+
+Cần 2 tham số là kích cỡ cửa sổ và độ dài bước trượt, đều là bội số của 1 lần batch. Thao tác trên cửa sổ đơn giản nhất có thể thực hiện là ```window()```
+ 
