@@ -223,5 +223,43 @@ Dữ liệu từ quá khứ được sử dụng để tạo ra dữ liệu hi�
 
 - <b>Windowed transformations</b>:
 
-Cần 2 tham số là kích cỡ cửa sổ và độ dài bước trượt, đều là bội số của 1 lần batch. Thao tác trên cửa sổ đơn giản nhất có thể thực hiện là ```window()```
- 
+Cần 2 tham số là kích cỡ cửa sổ và độ dài bước trượt, đều là bội số của 1 lần batch. Thao tác trên cửa sổ đơn giản nhất có thể thực hiện là ```window()``` trả về DStream mới với dữ liệu đến được gộp lại thành từng khối.
+
+- <b>UpdateStateByKey</b>:
+(key,event)->update (key,state).
+ví dụ đếm số thông điệp HTTP có cùng mã trả về. key là mã thông điệp, sự kiện là có log HTTP mới, trạng thái là số lượng mỗi mã trả về.
+
+### Output
+
+Giống như RDD, nếu không có thao tác output nào được áp dụng trên stream sau khi transformation thì tính toán sẽ không được thực hiện. Nếu không có thao tác output nào được cài trên StreamingContext, context sẽ không khởi động.
+
+```foreachRDD()``` là hàm output cho phép thực hiện thao tác trên từng RDD trong stream, tương tự như ```transform()``` cho phép truy cập từng RDD
+
+## 24/7
+
+Cài đặt để hệ thống hoạt động ổn định 24/7.
+
+### Checkpoint
+
+Cho phép Spark lưu dữ liệu của ứng dụng ra hệ thống lưu trữ tin cậy như HDFS để khôi phục khi có lỗi.
+
+- Giới hạn số tính toán phải thực hiện lại khi có lỗi
+
+- Chịu lỗi khi driver crash, khởi động lại driver.
+
+### Chịu lỗi driver 
+
+```getOrCreate()``` khởi đông lại sử dụng checkpoint để tiếp tục tính toán.
+
+### Lỗi worker
+
+Tất cả dữ liệu nhận được từ nguồn đều được sao lưu giữa các worker
+
+### Lỗi receiver
+
+Tùy thuộc vào nguồn cấp(có thể gửi lại dũ liệu không).
+
+### Đảm bảo xử lí 1 lần 
+
+Xử lí do lập trình viên.
+
