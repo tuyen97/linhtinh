@@ -26,3 +26,110 @@ Sửa Makefile theo mẫu:
 ```
 
 Chạy make.
+
+## Tạo application
+
+1. cd tới thư mục project vừa tạo, ví dụ ~/project/hello
+
+2. Sửa file ```config.xml``` theo mẫu:
+
+```
+<app>
+	<name>cube</name>
+	<user_friendly_name>OpenGL cube demo</user_friendly_name>
+</app>
+```
+
+3. Chạy lệnh ./bin/xadd
+
+## Tạo application version
+
+Cấu trúc thư mục apps cần được tạo theo mẫu:
+
+```
+apps/
+  appname1/
+    1.0/
+      windows_intelx86/
+        (files)
+      windows_intelx86__cuda/
+        (files)
+      i686-apple-darwin/
+        (files)
+      ... other platforms
+    1.1/
+    ... other versions
+  appname2/
+  ... other apps
+```
+
+Ví dụ với nền tảng x86_64-pc-linux-gnu, ta cần 1 file thực thi, 1 file version.xml, có thể thêm 1 file codesigning:
+
+<b>version.xml0</b>:
+
+```
+<version>
+	<file>
+		<physical_name>hello</physical_name>
+	</file>
+</version>
+```
+
+Chạy lệnh ./bin/update_versions 
+
+## Submit job
+
+Sau khi thêm app version cho mỗi app, ta cần submit job dựa trên các app version này để BOINC lập lịch cho client.
+
+Mỗi chương trình thường có file đầu vào và đầu ra, ta cần chỉ ra chúng cho client biết.
+
+Đối với file đầu vào, trước khi sử dụng cần staged qua câu lệnh:
+
+```bin/stage_file [--gzip] [--copy] [--verbose] path```
+
+xem kết quả thực hiện lệnh này trong thư mục download của project
+
+Sau đó, việc cấu hình được thông qua 2 file xml tương ứng cho input và output file, đặt trong thư mục templates, ví dụ:
+
+<b>hello_world_in cho các input file</b>:
+
+```<input_template>
+        <workunit>
+        </workunit>
+</input_template>
+```
+
+<b>hello_world_out cho các ouput file</b>:
+
+```
+<output_template>
+        <file_info>
+        <name><OUTFILE_0/></name>
+        <generated_locally/>
+        <upload_when_present/>
+        <max_nbytes>32768</max_nbytes>
+        <url><UPLOAD_URL/></url>
+    </file_info>
+    <result>
+        <file_ref>
+            <file_name><OUTFILE_0/></file_name>
+            <open_name>out.txt</open_name>
+        </file_ref>
+    </result>
+</output_template>
+```
+Sau khi cấu hình xong các file đầu vào và ra cho app, chạy lệnh:
+
+```./bin/create_work --appname infile_1 ... infile_n ```
+
+với infile1..n là các file đã stage và được ghi trong input xml.
+
+## Hoàn thành tạo project
+
+Chạy lệnh ```./bin/start```
+
+## Giao diện admin
+
+Tại url_base/<tên_project>_ops
+
+
