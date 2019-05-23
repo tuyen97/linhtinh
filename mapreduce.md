@@ -71,7 +71,7 @@ Hoạt động không tốt nếu:
 
 - 1 cluster HDFS hoạt động theo chế độ master-worker(namenode và datanode).
 
-- Namenode quản lí hệ thống file, lưu trữ metadata, cấu trúc cây thư mục của toàn bộ hệ thống dưới dạng namespace image và edit log  trên đĩa cứng của nó. Ngoài ra, namenode còn giữ thông tin trên bvề vị trí block của các file trên datanode, thông tin này liên tục được xây dựng lại từ các datanode.
+- Namenode quản lí hệ thống file, lưu trữ metadata, cấu trúc cây thư mục của toàn bộ hệ thống dưới dạng namespace image và edit log  trên đĩa cứng của nó. Ngoài ra, namenode còn giữ thông tin trên bộ nhớ chính về vị trí block của các file trên datanode, thông tin này liên tục được xây dựng lại từ các datanode.
 
 - Datanode là nơi lưu trữ thực sự của dữ liệu, nó thực hiện lưu trữ và lấy dữ liệu theo yêu cầu từ namenode hoặc client, báo cáo lại định kì cho namenode danh sách các block mà nó đang giữ.
 
