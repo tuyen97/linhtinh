@@ -32,4 +32,16 @@ Các thuộc tính cơ bản:
 
 - <b>max.in.flight.requests.per.connection</b>: số thông điệp được gửi trước khi nhận được bất kì phản hồi nào từ broker.
 
-- <b>timeout.ms, request.timeout.ms, and metadata.fetch.timeout.ms</b>: điều khiển khoảng thời gian  producer đợi phản hồi từ server khi gửi dữ liệu (<b>request.timeout.ms</b>)   
+- <b>timeout.ms, request.timeout.ms, and metadata.fetch.timeout.ms</b>: điều khiển khoảng thời gian  producer đợi phản hồi từ server khi gửi dữ liệu (<b>request.timeout.ms</b>)
+
+Thứ tự khi ghi:
+
+- Kafka đảm bảo thứ tự ghi trong cùng 1 partition. 
+
+- Bằng việc đặt <b>retries</b> khác 0 và <b>max.in.flights.requests.per.session</b> lớn hơn 1 có thể xảy ra trường hợp mà thông điệp đầu tiên fail còn thông điệp thứ 2 gửi thành công, sau đó thông điệp đầu tiên được gửi lại, do đó thứ tự giữa 2 thông điệp bị đảo lộn.
+
+- Nếu thứ tự thông điệp là quan trọng thì có thể đặt <b>max.in.flights.requests.per.session</b> bằng 1 để đảm bảo rằng trong khi 1 thông điệp được gửi lại thì không có thêm thông điệp nào khác được gửi nữa.
+
+### Serializer
+
+Registry: lưu trữ toàn bộ các schema trong registry(1 url), thông điệp được gắn kèm với id của schema. Consumer có thể dựa vào id gắn kèm trong thông điệp để deserialize dữ liệu.
