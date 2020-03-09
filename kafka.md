@@ -45,3 +45,41 @@ Thứ tự khi ghi:
 ### Serializer
 
 Registry: lưu trữ toàn bộ các schema trong registry(1 url), thông điệp được gắn kèm với id của schema. Consumer có thể dựa vào id gắn kèm trong thông điệp để deserialize dữ liệu.
+
+## Consumer
+
+### Consumer group
+
+1 topic gồm nhiều partition. Mỗi consumer nằm trong 1 consumer group, nhận thông điệp từ 1 tập các partition không giống nhau. 1 topic có thể có nhiều consumer group cùng consume.
+
+### Rebalance
+
+Khi 1 consumer trong group được thêm vào hoặc bỏ đi thì 1 consumer khác trong group sẽ thay thế nó xử lí các partition đang trống, đây gọi là rebalance. Trong quá trình rebalance, consumer sẽ không thể tiêu thụ được thông điệp .
+
+consumer duy trì thông tin về các thành viên trong group và các partition ưngs với từng consumer thông qua <i>heartbeat</i> gửi tới 1 broker giữ vai trò là <i>group coordinator</i>.
+
+Nếu consumer dừng gửi heartbeat đủ lâu, nó bị coi là dừng hoạt động và rebalance được thực hiện. Mất 1 khoảng thời gian để coordinator xác định là consumer đã chết hay chưa kể từ sau khi nó trễ gửi heartbeat. 
+
+### Config
+
+- <b>fetch.min.bytes</b>: nếu consumer request lấy dữ liệu từ broker nhưng các thông điệp mới có tổng kích cỡ nhỏ hơn giá trị tham số này, broker sẽ đợi thêm thông điệp để gửi cho consumer.
+
+- <b>fetch.max.wait.ms</b>: với việc đặt <b>fetch.min.bytes</b> ta chỉ định cho kafka biết cần đợi cho đến khi dữ liệu đủ lớn mới gửi. Tham số này để điều khiển thời gian broker chờ cho đến khi đủ dữ liệu hoặc là gửi luôn. Ví dụ, nếu đặt fetch.min.bytes là 1 MB và fetch.max.wait.ms là 100ms thì khi nhận được yêu cầu từ consumer kafka sẽ đợi cho đến khi đủ 1 MB dữ liệu hoặc sau 100ms tùy theo cái gì diễn ra trước.
+
+- <b>max.partition.fetch.bytes</b>: dung lượng dữ liệu tối đa mà broker trả về cho mỗi partition. Tham số này cần lớn hơn dung lượng thông điệp lớn nhất mà 1 broker chấp nhận.
+
+- <b>session.timeout.ms</b>: thời gian tối đa giữa 2 heartbeat trước khi consumer bị coi là đã chết, mặc định là 3s. Nếu sau khoảng thời gian này mà consumer chưa gửi heartbeat nào tới broker thì nó bị coi là đã chết và rebalance được thực hiện. Tham số này có liên quan chặt chẽ tới <b>heartbeat.interval.ms</b>. <b>heartbeat.interval.ms</b> điều khiển khoảng thời gian giữa 2 lần consumer gửi heartbeat cho group coordinator. heartbeat.interval.ms phải nhỏ hơn session.timeout.ms và thường đặt bằng 1/3. Đặt session.timeout.ms nhỏ hơn mặc định giúp phát hiện lỗi sớm hơn và thực hiện khôi phục nhanh hơn nhưng có thể gây ra việc rebalance ngoài mong muốn vì consumer mất nhiều thời gian để thực hiện vòng lặpxử lí dữ liệu. Nếu đặt lớn thì việc rebalance xảy ra chậm hơn nên có thể làm cho việc phát hiện lỗi và phục hồi lâu hơn.
+
+- <b>auto.offset.reset</b>: điều khiển hành vi của consumer khi nó bắt đầu đọc từ  1 partition chưa tưngf có commit offset nào hoặc offset là không hợp lệ(thường là do consumer dừng chạy quá lâu nên thông điệp ứng với offset đó đã bị hết hạn và bị broker xóa đi). Mặc định là latest, nghĩa là sẽ đọc từ thông điệp mới nhất kể từ khi consumer khởi động. Hoặc là earliest, nghĩa là consumer sẽ đọc bắt đầu từ bản ghi cũ nhất có thể.
+
+- <b>enable.auto.commit</b>: điều khiển việc consumer sẽ tự động commit offset hoặc là người lập trình phải tự commit. Nếu đặt là true, thì có thể đặt khoảng thời gian để consumer tự động commit ofset bằng tham số <b>auto.commit.interval.ms</b>.
+
+- <b>partition.assignment.strategy</b>: Cho các consumer và các topic chúng đã subscribe, xác định partition được gán cho từng consumer. Kafka có 2 chiến lược mặc định:
+
+   - <i>Range</i>: chia cho mỗi consumer những phần liền nhau của từng topic, lần lượt từng topic. Nếu C1 và C2 cùng subscribe topic T1 T2, mỗi topic có 3 patition. C1 sẽ nhận được partition 0 và 1 của cả T1 và T2, C2 nhận được partition 2 cả 2 topic này.
+
+   - <b>RoundRobin</b>: gộp tất cả các partition lại và chia mỗi partition lần lượt cho từng consumer. 
+
+   Có thể sử dụng chiến lược riêng bằng cách trỏ tham số này tới class cài đặt việc phân chia.
+
+- <b>max.poll.records</b>: Số bản ghi tối đã trong 1 lần poll
