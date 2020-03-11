@@ -83,3 +83,52 @@ Nếu consumer dừng gửi heartbeat đủ lâu, nó bị coi là dừng hoạt
    Có thể sử dụng chiến lược riêng bằng cách trỏ tham số này tới class cài đặt việc phân chia.
 
 - <b>max.poll.records</b>: Số bản ghi tối đã trong 1 lần poll
+
+### Commit và offset
+
+Kafka cho phép consumer tự quản lí thông tin về vị trí của thông điệp cuối cùng nó đã đọc.
+ 
+Consumer commit offset b   ằng cách ghi 1 thông điệp vào 1 topic đặc biệt là <b>__consumer_offsets</b>, với mỗi offset hiện tại cho từng partition. 
+
+#### Automatic Commit
+
+Cách đơn giản nhất là để consumer commit offset tự động, bằng cách đặt <b>enable.auto.commit=true</b>, sau mỗi 5s consumer sẽ tự động commit offset lớn nhất mà client đã từng nhận được. Quãng thời gian này có thể thiết lập bằng tham số <b>auto.commit.interval.ms</b>. 
+
+Với autocommit, 1 lời gọi hàm poll sẽ luôn commit offset cuối cùng trả về bởi lần poll trước đó. 
+
+#### Commit offset hiện tại
+
+Sử dụng hàm <b>commitSync()</b>, commit offset được trả về bởi hàm <b>poll()</b>, phát sinh ngoại lệ nếu xảy ra lỗi.
+
+#### Asynchronous Commit
+
+1 trong những nhược điểm của commit bằng tay là ứng dụng bị chặn dừng cho đến khi broker phản hồi cho commit request. Gây giảm thông lượng ứng dụng. 1 tùy chọn khác là sử dụng API commit bất đồng bộ.
+
+Không giống cách thực hiện đồng bộ, hàm bất đồng bộ sẽ không retry gửi commit, việc gửi sẽ chỉ được thực hiện 1 lần. Có 1 tùy chọn để sử dụng callback được gọi khi broker phản hồi.
+
+1 cách đơn giản là lưu lại offset đã commit vào 1 biến, khi hàm callback được gọi lúc broker phản hồi, kiểm tra xem offset trả về có bằng biến này hay không, nếu bằng thì chưa có commit mới nào thành công, việc retry cần được thực hiện, còn lại thì không.
+
+#### Kết hợp cả 2 cách commit
+
+Bình thường thì 1 vài lần commit không thành công mà không có gửi lại sẽ không thành vấn đề, tuy nhiên nếu nó là commit lần cuối trước khi đóng consumer hoặc là trước khi rebalance, thì cần phải chắc chắn rằng đã thành công.
+
+Bằng cách sử dụng hàm bất đồng bộ trong try, còn hàm đồng bộ đặt trong finally.
+
+#### Commit offset bất kì
+
+ngoài commit offset cuối cùng ta còn có thể commit 1 offset bất kì nào đó. Commit API cho phép truyền 1 map partition-offset để gửi cho broker.
+
+### Rebalance Listeners
+
+Consumer API cho phép ta thực hiện 1 đoạn code khi partition được thêm hoặc bớt khỏi consumer. Thực hiện bằng cách truyền vào hàm <b>subsribe()</b> 1 đối tượng <b>ConsumerRebalanceListener</b>. Đối tượng này cần cài đặt 2 phương thức:
+
+<b>public void onPartitionsRevoked(Collection<TopicPartition> partitions)</b>
+
+   Được gọi trước khi rebalance bắt đầu và trước khi consumer dừng nhận thông điệp. Đây là chỗ cần commit offset để cho bất kì consumer nào sau đó biết bắt đầu từ đâu
+
+<b>public void onPartitionsAssigned(Collection<TopicPartition> partitions)</b>
+
+   Được gọi sau khi partition được gán cho broker, trước khi consumer bắt đầu consume thông điệp.
+
+### Consume bản ghi với 1 offset bất kì
+
