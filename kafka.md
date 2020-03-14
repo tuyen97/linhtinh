@@ -130,5 +130,14 @@ Consumer API cho phép ta thực hiện 1 đoạn code khi partition được th
 
    Được gọi sau khi partition được gán cho broker, trước khi consumer bắt đầu consume thông điệp.
 
-### Consume bản ghi với 1 offset bất kì
+### Consume với 1 offset bất kì
 
+Sử dụng hàm <b>seek()</b> để chuyển đến 1 vị trí offset bất kì. Để việc consume chỉ thực hiện đúng 1 lần, ần phải sử dụng <b>ConsumerRebalanceListener</b> để lưu trữ vị offset trước khi dừng và <b>seek()</b> để nhảy đến vị trí đã lưu này.
+
+### Dừng consume
+
+Gọi hàm <b>consumer.wakeup()</b> sẽ ngắt <b>poll()</b> nếu đang dừng chờ hoặc ở lần lặp tiếp theo khi poll được gọi. Khi đó <b>WakeupException</b> được trả ra, ta có thể không xử lí exception này nhưng bắt buộc phải gọi <b>consumer.close()</b>. Group coordinator sẽ rebalance ngay lập tức mà không cần đợi session timeout.
+
+### Standalone consumer
+
+Thay vì subsribe thì sử dụng assign để nhận sở hữu 1 vài partition hoặc toàn bộ topic. Nếu có ai đó thêm 1 vài partition vào topic thì ta có thể định kì kiểm tra và assgin nó cho mình.
