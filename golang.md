@@ -37,7 +37,7 @@ Khi module feature là on, đường dẫn import của module được chỉ ra
 
 Ví dụ: 
 
-```
+```bash
 _ MyProject
      |_ go.mod                // module example.com/mypkg
      |_ vendor
