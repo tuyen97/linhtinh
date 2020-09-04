@@ -68,3 +68,44 @@ Khi 1 file trong package import 1 package khác, ta nói package đó phụ thu�
 Go không cho phép import vòng, nếu ```a``` phụ thuộc vào ```b```, ```b``` phụ thuộc vào ```c```, thì ```b``` không thể import ngược lại ```a```, ```c``` không thể import ngược lại ```b``` và cũng không thể import ```a``` do tạo thành vòng tròn. 
 
 Tên của folder chứa package không nhất thiết cần phải giống với tên package.  
+
+## Method
+
+Go hỗ trợ lập trình hướng đối tượng và method là một trong các đặc trưng đó.
+
+Trong Go, ta có thể khai báo 1 phương thức cho kiểu(type) ```T``` và ```*T```, với ```T``` thỏa mãn 4 điều kiện:
+
+- ```T``` phải là ```defined type```
+
+- ```T``` phải được định nghĩa trong cùng package với phương thức
+
+- ```T``` không được là kiểu con trỏ
+
+- ```T``` không được là kiểu interface 
+
+Kiểu ```T``` và ```*T``` được gọi là receiver type tương ứng với phương thức được khai báo cho chúng. 
+
+Khi khai báo phương thức với value receiver, trình biên dịch tự động tạo một phiên bản tương ứng cho kiểu pointer của cùng kiểu đó. 
+
+### Method propertypes và Method Set
+
+Mỗi khai báo phương thức có thể được coi bao gồm từ khóa ```func```, receiver parameter, method propertype và phần thân phương thức(body)
+
+Ví dụ:
+
+```go
+Pages() int
+SetPages(pages int)
+```
+
+Mỗi type có 1 method set, method set của một kiểu ko phải interface là tổ hợp của tất cả method propertype được khai báo cho kiểu đó.
+
+Method set của kiểu ```T``` luôn luôn là tập con của method set của kiểu ```*T```
+
+## Interface
+
+### Method set
+
+Mỗi kiểu có 1 method set đi kèm:
+
+-  
