@@ -108,4 +108,40 @@ Method set của kiểu ```T``` luôn luôn là tập con của method set của
 
 Mỗi kiểu có 1 method set đi kèm:
 
--  
+-
+## Creational
+
+### Singleton
+
+1 đối tượng duy nhất cho ứng dụng, bảo đảm rằng không thể có trùng lặp cho đối tượng này. 
+
+Ở lần gọi để sử dụng đối tượng này đầu tiên, nó được tạo và sử dụng giữa tất cả các phần của ứng dụng.
+
+Ví dụ:
+
+- Khi muốn sử dụng chung một kết nối tới cơ sở dữ liệu để thực hiện truy vấn
+
+- Mở 1 kết nối SSH dể thực hiện vài tác vụ và không muốn mở nhiều kết nối
+
+- Giới hạn truy vập tới tài nguyên, Singleton là cánh cửa để dẫn tới nó
+
+### Builder
+
+Sử dụng lại một quy trình nhiều lần để khởi tạo nhiều đối tượng của 1 interface. 
+
+Builder pattern hỗ trợ khởi tạo đối tượng mà không cần khởi tạo các trường trực tiếp 
+
+Lấy ví dụ về việc sản xuất phương tiện đi lại. Builder pattern được mô tả gồm có 1 nhà máy sản xuất (manufacturing), các quy trình (builder) và sản phẩm đầu ra (product). Nhà máy nhận vào 1 quy trình và cho ra sản phẩm tương ứng. Trong quy trình chứa sản phẩm đang hoàn thiện, trải qua các bước để thu được sản phẩm cuối cùng
+
+Mỗi khi cần thêm 1 sản phẩm mới cần cài đặt lại interface Builder có sẵn.
+
+BUilder pattern nhạy cảm với các thay đổi đối với quy trình xây dựng đối tượng, 1 thay đối sẽ làm ảnh hưởng tới tất cả quy trình hiện có.
+
+### Factory Method
+
+Ẩn đi thông tin về đối tượng, chỉ cung cấp thông tin qua interface với 1 số phương thức cần thiết. 
+
+Ủy nhiệm việc khởi tạo đối tượng cho phân khác trong chương trình 
+
+Làm việc ở mức interface thay vì mức cài đặt chi tiết
+  
