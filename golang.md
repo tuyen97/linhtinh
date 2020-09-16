@@ -115,10 +115,9 @@ Mỗi kiểu có 1 method set đi kèm:
 Ở ngôn ngữ C, mỗi giá trị chiếm 1 khối bộ nhớ liên tục, khác với C, các giá trị trong Go có thể chiếm nhiều đoạn rời rạc trong bộ nhớ, các phần này gọi là các value parts. Trong đó, có 1 đoạn gọi là direct part trỏ đến các underlying part khác. 
 
 |Kiểu có giá trị nằm trong 1 khối bộ nhớ duy nhất|Kiểu có giá trị nằm trong nhiều khối bộ nhớ|
-|------------------------------------------------|-------------------------------------------|
-|`Solo Direct Value Parts`                       |`Direct Part-> Underlying Part`            |
-|`boolean types`\`numeric types`\`pointer types`\
-`unsafe pointer types`\`struct types`\`array types`|`array types`\`map types`\`channel types`\`function types`\`interface types`\`string types`|
+|:------------------------------------------------:|:-------------------------------------------:|
+|Solo Direct Value Parts                       |Direct Part-> Underlying Part            |
+|boolean types, numeric types, pointer types, unsafe pointer types,struct types,array types | slice types, map types, channel types, function types, interface types, string types|
  
 ## Creational
 
