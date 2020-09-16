@@ -109,6 +109,17 @@ Method set của kiểu ```T``` luôn luôn là tập con của method set của
 Mỗi kiểu có 1 method set đi kèm:
 
 -
+
+## Value Parts
+
+Ở ngôn ngữ C, mỗi giá trị chiếm 1 khối bộ nhớ liên tục, khác với C, các giá trị trong Go có thể chiếm nhiều đoạn rời rạc trong bộ nhớ, các phần này gọi là các value parts. Trong đó, có 1 đoạn gọi là direct part trỏ đến các underlying part khác. 
+
+|Kiểu có giá trị nằm trong 1 khối bộ nhớ duy nhất|Kiểu có giá trị nằm trong nhiều khối bộ nhớ|
+|------------------------------------------------|-------------------------------------------|
+|`Solo Direct Value Parts`                       |`Direct Part-> Underlying Part`            |
+|`boolean types`\`numeric types`\`pointer types`\
+`unsafe pointer types`\`struct types`\`array types`|`array types`\`map types`\`channel types`\`function types`\`interface types`\`string types`|
+ 
 ## Creational
 
 ### Singleton
@@ -144,4 +155,58 @@ BUilder pattern nhạy cảm với các thay đổi đối với quy trình xây
 Ủy nhiệm việc khởi tạo đối tượng cho phân khác trong chương trình 
 
 Làm việc ở mức interface thay vì mức cài đặt chi tiết
-  
+
+## Go Runtime
+
+### Work Stealing
+
+Go runtime thực hiện việc đưa các goroutine vào OS thread theo chiến lược gọi là work stealing.
+
+Go tuân theo mô hình fork-join trong việc đa nhiệm, fork xảy ra khi goroutine khởi chạy, join xảy ra khi 2 hay nhiều goroutine được đồng bộ thông qua channel hoặc 1 kiểu trong ```sync```. Trong mô hình work stealing, mỗi processor chạy 1 thread, mỗi thread có 1 hàng đợi 2 chiều (double-ended queue/deque). Với một thread, quá trình thực hiện work stealing tuân theo các quy luật:
+
+1. Tại điểm fork, đẩy task vào cuối hàng đợi của thread.
+
+2. Nếu thread đang rỗi, lấy task từ hàng đợi của thread khác bất kì.
+
+3. Khi đợi join từ goroutine khác, lấy task từ hàng đợi của chính nó ra.
+
+4. Nếu deque của thread trống, thực hiện 1 trong 2:
+
+	a. Dừng tại điểm join
+
+	b. Lấy task từ deque của thread ngẫu nhiên.
+
+Ví dụ với đoạn code sau:
+
+```golang 
+var fib func(n int) <-chan int
+fib = func(n int) <-chan int {
+result := make(chan int)
+	go func() {
+		defer close(result)
+		if n <= 2 {
+			result <- 1
+			return
+		}
+		result <- <-fib(n-1) + <-fib(n-2)
+	}()
+	return result
+}
+fmt.Printf("fib(4) = %d", <-fib(4)) 
+```
+ 
+Giả sử chương trình trên được thực hiện trên 1 máy tính có 2 nhân, mỗi nhân chạy 1 OS thread. Ban đầu, ta có 1 goroutine -  hàm main, giả sử bắt đầu chạy tại nhân 1.
+
+![](./img/go_runtime_1.png)
+
+Sau đó, chương trình chạy đến đoạn ```fib(4)```. Đoạn này tạo 1 goroutine mới và được đẩy vào trong hàng đợi của T1, goroutine cha (main) tiếp tục thực thi. Vì ```fib(4)``` chưa thể trả về, nên main rơi vào trạng thái đợi join, thread T1 đi vào trạng thái rỗi. 
+
+![](./img/go_runtime_2.png)
+
+Tại thời điểm này, một trong 2 sự kiện có thể xảy ra: T1 hoặc T2 có thể lấy goroutine thực thi lời gọi ```fib(4)``` từ hàng đợi của T1 ra và chạy. Giả sử T1 thắng 
+
+![](./img/go_runtime_3.png)
+
+## Channel
+
+Mỗi channel chứa 2 danh sách liên kết là ```senq``` và ```waitq```. Khi 1 goroutine thực hiện truyền thông điệp tới channel 
