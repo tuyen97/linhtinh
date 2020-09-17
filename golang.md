@@ -112,13 +112,144 @@ Mỗi kiểu có 1 method set đi kèm:
 
 ## Value Parts
 
-Ở ngôn ngữ C, mỗi giá trị chiếm 1 khối bộ nhớ liên tục, khác với C, các giá trị trong Go có thể chiếm nhiều đoạn rời rạc trong bộ nhớ, các phần này gọi là các value parts. Trong đó, có 1 đoạn gọi là direct part trỏ đến các underlying part khác. 
+Ở ngôn ngữ C, mỗi giá trị chiếm 1 khối bộ nhớ liên tục, khác với C, các giá trị trong Go có thể chiếm nhiều đoạn rời rạc trong bộ nhớ, các phần này gọi là các value parts. Trong đó, có 1 đoạn gọi là direct part trỏ đến các underlying part khác. Direct part chính là 1 con trỏ dùng để trỏ đến các phần còn lại của giá trị. 
 
 |Kiểu có giá trị nằm trong 1 khối bộ nhớ duy nhất|Kiểu có giá trị nằm trong nhiều khối bộ nhớ|
 |:------------------------------------------------:|:-------------------------------------------:|
 |Solo Direct Value Parts                       |Direct Part-> Underlying Part            |
 |boolean types, numeric types, pointer types, unsafe pointer types,struct types,array types | slice types, map types, channel types, function types, interface types, string types|
- 
+
+Struct có chứa con trỏ được gọi là pointer wrapper type, 1 kiểu có giá trị chứa con trỏ là pointer holder type. Kiểu con trỏ và kiểu pointer wrapper đều là kiểu pointer holder, 1 mảng kiểu pointer holder cũng là kiểu pointer holder.
+
+Các kiểu loại thứ 2 trong bảng trên đều là pointer holder. Có nghĩa giá trị không của chúng đều là ```nil```
+
+### Underlying part không được sao chép khi thực hiện phép gán gía trị
+
+Khi thực hiện phép gán, chỉ có direct part là được sao chép từ giá trị nguồn sang giá trị đích, cả 2 đều tham chiếu đến cùng underlying part.
+
+![](./img/value-parts-copy.png)
+
+## Array, Slices, Map
+
+3 kiểu trên gọi là kiểu container. Mỗi giá trị của 1 trong các kiểu trên được sử dụng để chứa 1 tập hợp các phần tử. Kiểu của các phần tử được lưu trữ là giống nhau.  Mỗi phần tử trong 1 trong container được găn với 1 key. Giá trị của phần tử có thể được truy cập và chỉnh sửa thông qua key này. Đối với kiểu map, key phải là kiểu comparable. Còn đối với array và slice key là kiểu ```int```, chỉ ra vị trí của phần tử trong mảng.
+
+Mỗi kiểu container đều có thuộc tính độ dài, là số phần tử được lưu trong container. Array là kiểu chỉ có direct part còn slice và map các phần tử được lưu trong underlying part.
+
+Các phần tử trong array hoặc slice được đặt kề nhau trong 1 đoạn bộ nhớ liên tục, còn với các phần tử trong map cũng nằm trong 1 vùng nhớ liên tục nhưng có thể không nằm kề nhau.
+
+### Kí hiệu
+
+- Array: ```[N]T```
+
+- Slice: ```[]T```
+
+- Map: ```map[K]T```
+
+Lưu ý:
+```go
+[...]bool{false, true, true, false}
+[...]bool{3: false, 1: true, true}
+````
+
+Kí hiệu ```...``` có nghĩa để cho trình biên dịch tự xác định độ dài của array. Đối với kiểu array và slice, index bắt buộc phải là hằng số ví dụ:
+
+```go
+var a uint = 1
+var _ = map[uint]int {a : 123} // okay
+
+// The following two lines fail to compile,
+// for "a" is not a constant key/index.
+var _ = []int{a: 100}  // error
+var _ = [5]int{a: 100} // error
+```
+### Giá trị không cho các kiểu container
+
+Đối với kiểu array ```A```, giá trị không được kí hiệu là ```A{}```, tất cả các phần tử trong đó đều là giá trị không của kiểu của các phần tử. 
+
+Đối với slice và map giá trị 0 đều là ```nil```
+
+Khi 1 biến array được khai báo mà không chỉ ra giá trị ban đầu, 1 vùng bộ nhớ đã được cấp phát cho tất cả các phần tử của array với giá trị là không. Bộ nhớ cho các phần tử của nil slice và map chưa được cấp phát.
+
+Lưu ý ```[]T{}``` biểu diễn slice trống (0 có phần tử nào) khác với ```[]T(nil)```, giá trị không của slice (nil). Tương tự với map.
+
+### Length và capacity
+
+Dung lượng của array bằng length của nó. Dung lượng của map là vô hạn. Dung lượng của slice luôn lớn hơn hoặc bằng độ dài của nó.
+
+Dung lượng và độ dài của array không đổi kể từ lúc khởi tạo, đối với slice có thể thay đổi trong lúc thực thi. 
+
+### Truy cập và chỉnh sửa các phần tử
+
+Phần tử gắn kèm với khóa ```k``` được lưu trữ trong container ```v``` được kí hiệu ```v[k]```.
+
+### Cấu trúc của Slice
+
+Cấu trúc của slice được định nghĩa bởi Go runtime như sau:
+
+```go
+type _slice struct {
+	elements unsafe.Pointer // referencing underlying elements
+	len      int            // length
+	cap      int            // capacity
+}
+```
+
+Struct trên mô tả bố cục phần direct part của slice.
+
+![](./img/slice-internal.png)
+
+Đoạn bộ nhớ chứa underlying part của slice có thể rất lớn tuy nhiên slice chỉ quan tâm đến phần màu xám ở giữa. Các vị trí nằm ở giữa ```len``` và ```cap``` không thuộc về slice, có thể thuộc về slice hoặc array khác.
+
+Kết quả của hàm ```append``` là 1 slice có thể có cùng phần tử bắt đầu với slice gốc hoặc không, phụ thuộc và dung lượng và độ dài của slice ban đầu và số phần tử được nối thêm.
+
+- Nếu số phần tử còn thừa không đủ để chứa các phần tử được thêm vào, 1 đoạn bộ nhớ mói sẽ được cấp phát để chứa slice kết quả, 2 slice này không có cùng vị trí bắt đầu.
+
+- Và ngược lại
+
+### Phép gán container
+
+Nếu 1 map được gán cho 1 map khác thì 2 map này có cùng chung underlying part hay toàn bộ các phần tử. THêm hoặc xóa 1 map sẽ phản chiếu tới map khác.
+
+Tương tự đối với slice. Tuy nhiên, nếu 1 slice thay đổi độ dài/ dung lượng thì không ảnh hưởng đến slice kia.
+
+Nếu 1 array được gán cho 1 array khác, tất cả các phần tử được sao chép, do đó 2 array không có chung các phần tử.
+
+### Tạo slice và map với hàm ```make```
+
+Với map:
+
+```go
+make(M, n)
+make(M)
+```
+
+Dòng đầu tiên khởi tạo map với phần bộ nhớ được khởi tạo để chứa ít nhất n phần tử. DÒng thứ 2 tạo map với bộ nhớ tùy thuộc vào trình biên dịch.
+
+Với slice:
+
+```go
+make(S, length, capacity)
+make(S, length)
+```
+
+Kiểu đầu tiên tạo mới slice với độ dài và dung lượng được chỉ định, kiểu thứ hai tạo slice với độ dài bằng với dung lượng. Tất cả các phần tử đều có giá trị không.
+
+### Khởi tạo bằng ```new```
+
+Hàm ```new``` có thể được dùng để cấp phát 1 giá trị cho bất kì kiểu nào và lấy về 1 con trỏ tham chiếu tới giá trị được cấp phát. Giá trị này là giá trị không của kiểu tương ứng.
+
+Các phần tử trong map chỉ có thể thay đổi bằng 1 phần tử mới mà không thử sửa đổi từng phần. 
+
+### Rút slice từ array và slice
+
+Ta có thể thu được slice từ slice khác hoặc array bằng sử dụng cú pháp subslice. Các phần tử của slice mới và array hoặc slice ban đầu đều nằm trong trên 1 đoạn bộ nhớ hay chúng đều chia sẻ chung 1 số phần tử.
+
+```go
+baseContainer[low : high]       // two-index form
+baseContainer[low : high : max] // three-index form
+```
+
+
 ## Creational
 
 ### Singleton
@@ -208,4 +339,16 @@ Tại thời điểm này, một trong 2 sự kiện có thể xảy ra: T1 ho�
 
 ## Channel
 
-Mỗi channel chứa 2 danh sách liên kết là ```senq``` và ```waitq```. Khi 1 goroutine thực hiện truyền thông điệp tới channel 
+Nhiệm vụ của channel là làm cho goroutine có thể hoạt động lại sau khi bị chặn dừng bởi hành động nhận hoặc gửi dữ liệu. 
+
+Mỗi channel chứa 2 danh sách liên kết là ```senq``` và ```waitq```. Khi 1 goroutine thực hiện truyền thông điệp tới channel
+
+1. lock channel
+
+2. Kiểm tra ```recvq``` để lấy 1 goroutine từ hàng chờ, sau đó chuyển trực tiếp dữ liệu cho goroutine đó
+
+3. Nếu ```recvq``` rỗng, kiểm tra xem buffer còn chỗ không, nếu còn thực hiện sao chép dữ liệu từ goroutine thực hiện ghi ra buffer.
+
+4. Nếu buffer đầy, dữ liệu cần ghi được lưu vào trong cấu trúc goroutine (sudog), sau đó goroutine đi vào ```sendq``` và tạm dừng hoạt động. 
+
+ 
