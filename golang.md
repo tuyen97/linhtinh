@@ -306,36 +306,37 @@ Go tuân theo mô hình fork-join trong việc đa nhiệm, fork xảy ra khi go
 
 	b. Lấy task từ deque của thread ngẫu nhiên.
 
-Ví dụ với đoạn code sau:
+Trong thực tế, có 4 loại queue để thread thực hiện lấy goroutine:
 
-```golang 
-var fib func(n int) <-chan int
-fib = func(n int) <-chan int {
-result := make(chan int)
-	go func() {
-		defer close(result)
-		if n <= 2 {
-			result <- 1
-			return
-		}
-		result <- <-fib(n-1) + <-fib(n-2)
-	}()
-	return result
-}
-fmt.Printf("fib(4) = %d", <-fib(4)) 
-```
- 
-Giả sử chương trình trên được thực hiện trên 1 máy tính có 2 nhân, mỗi nhân chạy 1 OS thread. Ban đầu, ta có 1 goroutine -  hàm main, giả sử bắt đầu chạy tại nhân 1.
+1. Local Run queue
 
-![](./img/go_runtime_1.png)
+2. Global Run queue
 
-Sau đó, chương trình chạy đến đoạn ```fib(4)```. Đoạn này tạo 1 goroutine mới và được đẩy vào trong hàng đợi của T1, goroutine cha (main) tiếp tục thực thi. Vì ```fib(4)``` chưa thể trả về, nên main rơi vào trạng thái đợi join, thread T1 đi vào trạng thái rỗi. 
+3. Network Poller
 
-![](./img/go_runtime_2.png)
+THứ tự thực hiện quét:
 
-Tại thời điểm này, một trong 2 sự kiện có thể xảy ra: T1 hoặc T2 có thể lấy goroutine thực thi lời gọi ```fib(4)``` từ hàng đợi của T1 ra và chạy. Giả sử T1 thắng 
+1. Local
 
-![](./img/go_runtime_3.png)
+2. Global
+
+3. Network Poller
+
+4. Work Stealing
+
+Trên thực tế Go runtime thực thi mô hình 3 lớp M:P:N:
+
+![](./img/mpn.png)
+
+Trong Go runtime có 1 số lượng processer cố định (GOMAXPROCS), mặc định bằng với số core của CPU, có thể có nhiều thread hơn số nhân CPU. Đầu tiên, M được tạo để host P, P sau đó được lập lịch thực hiện G. 
+
+Đối với goroutine thực hiện blocking call: thread thực hiện nó chắc chắn bị chặn dừng gây lãng phí CPU, go runtime lấy context P từ nó để trao cho thread khác, giúp cho các goroutine trong đó có thể được thực ththi. Khi lời gọi blocking call trả về, OS thread thử lấy lại context đã bị trao cho thread khác, Nếu không được, nó đặt goroutine đang giữ vào global queue và đi vào trạng thái nghỉ và tự đi vào thread pool của runtime. 
+
+Đối với non-blocking call: goroutine được dừng và thread thưc hiện goroutine khác, khi lời gọi trả về, goroutine được chuyển vào network poller queue để được lập lịch tiếp tục thực hiện.
+
+Tính công bằng:
+
+Mỗi goroutine thực hiện quá 10ms được đánh dấu là có thể chiếm dụng. Tuy nhiên, việc chiếm dụng chỉ hoàn thành ở phần đầu lời gọi hàm (function prolog - việc set up thanh ghi và ngăn xếp trước khi gọi hàm hoặc kết thúc hàm). Go tự động thêm thêm vào function prolog 1 đoạn code thực hiện việc chiếm dụng.  
 
 ## Channel
 
