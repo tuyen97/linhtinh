@@ -352,4 +352,34 @@ Mỗi channel chứa 2 danh sách liên kết là ```senq``` và ```waitq```. Kh
 
 4. Nếu buffer đầy, dữ liệu cần ghi được lưu vào trong cấu trúc goroutine (sudog), sau đó goroutine đi vào ```sendq``` và tạm dừng hoạt động. 
 
- 
+## Sync
+
+### WaitGroup
+
+WaitGroup là cách để đợi 1 tập hành động hoàn thành mà không quan tâm đến kết quả hoặc có cách để thu thập kết quả, tạo 1 điểm join cho các goroutine. Nếu không thì sử dụng ```select``` hiệu quả hơn. WaitGroup hoạt động giống 1 bộ đếm, gọi ```Add``` để tăng biến đếm, ```Done``` để giảm và ```Wait``` để đợi cho đi khi giá trị của biến bằng 0. 
+
+###  Mutex và RWMutex
+
+RWMutex khác với Mutex ở chỗ các goroutine có thể cùng đọc đồng thời đoạn găng thay vì chỉ 1 như Mutex, miễn là ko có writer nào đang giữ khóa. 
+
+### Cond
+
+Đợi 1 sự kiện diễn ra. Goroutine có thể dừng cho đến khi nó được đánh thức và kiểm tra sự kiện. Ví dụ:
+
+```go
+for conditionTrue() == false {
+}
+```
+
+viết lại thành
+
+```go
+c := sync.NewCond(&sync.Mutex{})
+c.L.Lock()
+for conditionTrue() == false {
+	c.Wait()
+}
+c.L.Unlock()
+```
+
+
