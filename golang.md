@@ -382,4 +382,116 @@ for conditionTrue() == false {
 c.L.Unlock()
 ```
 
+## Concurrency Pattern
+
+### Or done channel
+
+Stop goroutine khi có 1 trong các channel đóng. Thực hiện qua 1 hàm đệ quy 
+
+### Error handling
+
+Lỗi cần được gửi tới 1 phần khác chứa trạng thái của toàn bộ hệ thống để đưa ra quyết định.  
+
+Điểm cốt lõi là gắn liền kết quả trả về cùng với lỗi có thể xảy ra. Điều này đại diện cho toàn bộ kết quả có thể xảy ra, tách biệt việc sinh kết quả và xử lí lỗi.
+
+### Pipeline
+
+Sử dụng khi xử lí dữ liệu stream hoặc theo batch. Gồm nhiều stage sắp xếp nối tiếp. 1 stage nhận dữ liệu vào, thực hiện xử lí và bắn thông tin ra.
+
+### Fan-in, Fan-out
+
+Fan-out: sử dụng nhiều goroutine để xử lí 1 input
+
+Fan-in: sử dụng nhiều goroutine để gộp nhiều input thành 1
+
+### Queuing
+
+Sử dụng queue để tách 1 stage ra khỏi các stage khác. Sử dụng queue có thể làm tăng hiệu năng toàn bộ hệ thống chỉ trong trường hợp:
+
+- Nếu batching request trong stage tiết kiệm thời gian
+
+- Nếu trễ tại 1 stage làm sản sinh feedback loop trong hệ thống
+
+Ví dụ cho trường hợp đầu tiên là việc buffer input vào 1 chỗ nhanh hơn (mem) so với đích để ghi (disk). 
+
+### Context package 
+
+```golang
+var Canceled = errors.New("context canceled")
+var DeadlineExceeded error = deadlineExceededError{}
+type CancelFunc
+type Context
+func
+func
+func
+func
+func
+func
+Background() Context
+TODO() Context
+WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
+WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+WithValue(parent Context, key, val interface{}) Context
+````
+
+Trong các chương trình thực hiện tính toán đồng thời, việc ngắt các hành động là hay xảy ra do timeout, việc hủy bỏ hoặc lỗi từ các phần khác của hệ thống. Ta có thể sử dụng channel ```done``` trong toàn bộ chương trình để lan truyền thông báo kết thúc. Tuy nhiên, sẽ hữu ích hơn nếu ta có thể truyền thêm các thông tin về việc ngắt bên cạnh tín hiệu ngắt. Việc này chính là lí do để package ```context``` được tạo ra. 
+
+```golang
+type Context interface {
+   // Deadline returns the time when work done on behalf of this
+   // context should be canceled. Deadline returns ok==false when no
+   // deadline is set. Successive calls to Deadline return the same
+   // results.
+   Deadline() (deadline time.Time, ok bool)
+   // Done returns a channel that's closed when work done on behalf
+   // of this context should be canceled. Done may return nil if this
+   // context can never be canceled. Successive calls to Done return
+   // the same value.
+   Done() <-chan struct{}
+   // Err returns a non-nil error value after Done is closed. Err
+   // returns Canceled if the context was canceled or
+   // DeadlineExceeded if the context's deadline passed. No other
+   // values for Err are defined. After Done is closed, successive
+   // calls to Err return the same value.
+   Err() error
+   // Value returns the value associated with this context for key,
+   // or nil if no value is associated with key. Successive calls to
+   // Value with the same key returns the same result.
+   Value(key interface{}) interface{}
+}
+```
+
+```Done()``` trả về 1 channel bị đóng khi goroutine kết thúc, ```Deadline``` trả về thời gian tối đã để thực hiện công việc nếu không goroutine sẽ bị buộc dừng, ```Error``` trả về không nil nếu goroutine bị buộc dừng. ```Value``` dùng để set các giá trị của từng request. TÓm lại, mục đích chính của ```context```:
+
+- Cung cấp 1 API để hủy bỏ 1 nhánh goroutine
+
+- Cung cấp các để truyền dữ liệu giữa các goroutine thuộc cùng 1 request, bằng cách truyền context làm tham số đầu tiên của các lời gọi hàm.
+
+Trong ```Context``` interface, không hề có cách nào để thay đổi trạng thái của cấu trúc bên dưới. Việc này bảo vệ hàm ở đầu call stack khỏi việc bị các hàm con hủy bỏ context. Kết hợp với phương thức ```Done``` tả về ```done``` channel, cho phép ```Context``` có thể kiểm soát được tín hiệu cancel từ phía trên call stack. 
+
+```golang
+func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+func WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
+func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+```
+
+Tất cả các phương thức đều nhận vào 1 ```Context``` và trả về 1 ```Context``` khác. 
+
+```WithCancel``` trả về 1 ```Context``` sẽ đóng ```done``` channel khi hàm ```cancel``` được gọi. ```WithDeadline``` trả về 1 ```Context``` đóng ```done``` channel khi đạt tới 1 thời điểm ```deadline``` nào đó. ```WithTimeOut``` trả về 1 ```Context``` đóng ```done``` channel sau 1 khoảng ```timeout```.
+
+Nếu 1 hàm muốn hủy các hàm khác phía dưới nó trong call-graph, nó sẽ gọi 1 trong các hàm trên và truyền ```Context``` trả về cho các hàm nó gọi. Nếu hàm không muốn thay đổi hành động hủy này, nó chỉ cần truyền ```Context``` mà nó nhận được cho các hàm con.
+
+Bằng cách này, các lớp kế tiếp nhau trong call-graph có thể tạo ```Context``` đáp ứng nhu cầu mà không làm ảnh hưởng đến lớp phía trên.
+
+Trên cùng của stack call, không thể truyền ```Context``` mà phải tạo bằng cách sử dụng 2 hàm:
+
+```go
+func Background() Context
+func TODO() Context
+```
+
+```Background``` trả về 1 ```Context``` trống. ```TODO``` cũng tương tự nhưng không được sử dụng trong production.
+
+
 
