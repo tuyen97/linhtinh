@@ -419,20 +419,16 @@ Ví dụ cho trường hợp đầu tiên là việc buffer input vào 1 chỗ n
 ```golang
 var Canceled = errors.New("context canceled")
 var DeadlineExceeded error = deadlineExceededError{}
+
 type CancelFunc
 type Context
-func
-func
-func
-func
-func
-func
-Background() Context
-TODO() Context
-WithCancel(parent Context) (ctx Context, cancel CancelFunc)
-WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
-WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
-WithValue(parent Context, key, val interface{}) Context
+
+func Background() Context
+func TODO() Context
+func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+func WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
+func WithTimeout(parent Context, timeout time.Duration) (Context,CancelFunc)
+func WithValue(parent Context, key, val interface{}) Context
 ````
 
 Trong các chương trình thực hiện tính toán đồng thời, việc ngắt các hành động là hay xảy ra do timeout, việc hủy bỏ hoặc lỗi từ các phần khác của hệ thống. Ta có thể sử dụng channel ```done``` trong toàn bộ chương trình để lan truyền thông báo kết thúc. Tuy nhiên, sẽ hữu ích hơn nếu ta có thể truyền thêm các thông tin về việc ngắt bên cạnh tín hiệu ngắt. Việc này chính là lí do để package ```context``` được tạo ra. 
