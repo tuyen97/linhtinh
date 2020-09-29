@@ -489,5 +489,18 @@ func TODO() Context
 
 ```Background``` trả về 1 ```Context``` trống. ```TODO``` cũng tương tự nhưng không được sử dụng trong production.
 
+## Đa nhiệm ở mức mở rộng
 
+### Lan truyền lỗi 
 
+Lỗi cần chứa thông tin về:
+
+- Cái gì đã xảy ra: full disk, socket timeout, xác thực hết thời gian,...
+
+- Xảy ra khi nào và ở đâu: lỗi cần chứa thông tin về toàn bộ stack trace từ khi gọi đến khi phát sinh lỗi cũng như nơi xảy ra ví dụ như xảy ra ở máy chủ nào, và cần chứa nhãn thời gian nó xảy ra.
+
+- Thông điệp thân thiện với người dùng: thông điệp được hiển thị tới người dùng, được rút gọn từ 2 thông tin trên
+
+- Làm cách nào để người dùng truy cập thêm thông tin: gắn thêm ID...
+
+Mặc định thì lỗi không thể chứa các thông tin trên trừ khi được gán thêm vào. Do đó, nếu lỗi không chứa thông tin trên thì có thể coi là bug hoặc chỉ là trường hợp biên. Chương trình có thể chứa nhiều mô đun, ở biên giữa 2 mô đun lỗi được kiểm trả và chuyển đổi định dạng. Bất kì lỗi nào đi qua mô đun mà không tuân theo mô hình lỗi của mô đun đều bị coi là bug. 
