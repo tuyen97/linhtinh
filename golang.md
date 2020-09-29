@@ -503,4 +503,4 @@ Lỗi cần chứa thông tin về:
 
 - Làm cách nào để người dùng truy cập thêm thông tin: gắn thêm ID...
 
-Mặc định thì lỗi không thể chứa các thông tin trên trừ khi được gán thêm vào. Do đó, nếu lỗi không chứa thông tin trên thì có thể coi là bug hoặc chỉ là trường hợp biên. Chương trình có thể chứa nhiều mô đun, ở biên giữa 2 mô đun lỗi được kiểm trả và chuyển đổi định dạng. Bất kì lỗi nào đi qua mô đun mà không tuân theo mô hình lỗi của mô đun đều bị coi là bug. 
+Mặc định thì lỗi không thể chứa các thông tin trên trừ khi được gán thêm vào. Do đó, nếu lỗi không chứa thông tin trên thì có thể coi là bug, ngược lại đó chỉ là trường hợp biên. Chương trình có thể chứa nhiều mô đun, ở biên giữa 2 mô đun lỗi được kiểm trả và chuyển đổi định dạng. Bất kì lỗi nào đi qua mô đun mà không tuân theo mô hình lỗi của mô đun đều bị coi là bug. 
