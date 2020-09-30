@@ -249,6 +249,83 @@ baseContainer[low : high]       // two-index form
 baseContainer[low : high : max] // three-index form
 ```
 
+## Chi phí của việc copy giá trị trong Go
+
+Xảy ra khi gán, truyền tham số, gửi vào channel. 
+
+### Value size
+
+Kích cỡ của 1 value chỉ ra direct part của nó chiếm bao nhiều byte trong bộ nhớ. Phần underlying không đóng góp vào kích cỡ của value.
+
+Trừ aray, string, interface, struct,các value của 1 kiểu bất kì luôn có kích cỡ bằng nhau.
+
+Kích cỡ của array bằng tích của kích cỡ của element trong array với số phần tử trong array.
+
+Kích cỡ của struct phụ thuộc vào kích cỡ các thuộc tính và thứ tự của chúng. 
+
+### Value copy cost
+
+Chi phí của việc copy 1 value tỉ lệ với kích cỡ của nó. Trong Go, trừ struct hoặc array có kích cỡ lớn thì tất cả các value khác đều được coi là cỡ nhỏ.
+
+Đối với struct và array có kích cỡ lớn, ta có thể sử dụng con trỏ thay cho giá trị trực tiếp. Tuy nhiên, quá nhiều con trỏ có thể làm tăng áp lực cho garbage collectors. Việc lựa chọn giá trị hay con trỏ tới giá trị tùy thuộc vào tính huống.
+
+Tránh sử dụng kiểu duyệt (key, value) đối với slice và array nếu các phần tử đều có kích cỡ lớn, với mỗi lần duyệt, value đều được copy tới biến thứ hai trong cú pháp lặp. 
+
+## Memory Blocks
+
+### Memory block
+
+Memory block là 1 đoạn bộ nhớ liên tục host các phần direct part lúc thực thi(run time). 1 memory block có thể host nhiều part nhưng mỗi part chỉ nằm trong 1 memory block duy nhất bất kể nó có kích cỡ lớn đến đâu. Nói cách khác, với bất kì value part nào, không bao giờ có chuyện nằm trên nhiều memory block.
+
+### Khi nào được cấp phát
+
+Không giới hạn trong các trường hợp sau:
+
+- ```new``` hoặc ```make```, ```new``` cấp phát 1 block duy nhất, ```make``` cấp phát nhiều block cho cả direct part và underlying part của slice, map hoặc channel
+
+- tạo map, slice, anonymous function với kí hiệu rỗng. 
+
+- Khai báo biến.
+
+- assign non-interface values to interface values (when the non-interface value is not a pointer value)
+
+- nối 2 string không phải là hằng.
+
+- chuyển đổi từ string thành byte hoặc ngược lại.
+
+- chuyển int sang string.
+
+- ```append``` khi dung lượng của slice đích không đủ.
+
+- thêm 1 bản ghi vào map khi map không đủ dung lượng.
+
+### Cấp phát ở đâu
+
+Đối với mỗi chương trình được biên dịch bằng trình biên dịch chuẩn của Go, tại runtime, mỗi goroutine duy trì 1 stack, là 1 đoạn bộ nhớ. Đóng vai trò là 1 pool cho các memory block được cấp phát tới. Kích cỡ khi khởi tạo của stack khoảng 2k byte trong hệ thống 64 bit. Stack có thể được phình to hoặc thu gọn lại trong quá trình goroutine hoạt động.
+
+Kích cỡ tối đa của stack trong Go 1.11 là 1GB đối với hệ thống 64-bit và 250MB đối với 32-bit. Có thể đặt bằng ```SetMaxStack``` trong package ```runtime/degbug````.
+
+Heap là vùng nhớ đơn nhất trong mỗi chương trình, nếu 1 memory block không được cấp phát trong bất kì stack nào thì gọi nó được cấp phát trong heap. Các phần trong heap có thể được sử dụng đồng thời bởi nhiều goroutine nên cần phải được đồng bộ khi cần. 
+
+Khi trình biên dịch phát hiện 1 memory block được tham chiếu bởi nhiều goroutine hoặc không dễ để xác định xem liệu nó có an toàn khi đặt trong stack không, block đó sẽ được cấp phát trong heap. 
+
+1 biến được khai báo cục bộ nhưng lại được cấp phát trong heap được gọi là thoát tới heap. 1 biến kiểu ```T``` thoát tới heap ban đầu luôn được tạo 1 con trỏ kiểu ```*T``` tham chiếu tới nó nằm trong stack của goroutine khai báo biến. Khi ```*T``` không còn tham chiếu tới ```T``` thì ```T``` được bộ dọn rác xóa bỏ. 
+
+- 1 thuộc tính của struct thoát tới heap thì toàn bộ struct cũng thoát tới heap
+
+- 1 phần tử của array 
+
+- 1 phần tử của slice
+
+- value part v được tham chiếu bởi 1 value part đã thoát tới heap thì nó cũng thoát tới heap.
+
+### Thu hồi bộ nhớ khi nào
+
+Memory blocks cấp phát cho direct part của biến thuộc package không bao giờ bị thu hồi.
+
+Stack của goroutine bị thu hồi toàn bộ hoặc không thu hồi phần nào, chỉ khi goroutine kết thúc hoạt động. 
+
+Memory block nằm trong heap chỉ được thu hồi khi không còn được tham chiếu tới nữa. 
 
 ## Creational
 
@@ -504,3 +581,13 @@ Lỗi cần chứa thông tin về:
 - Làm cách nào để người dùng truy cập thêm thông tin: gắn thêm ID...
 
 Mặc định thì lỗi không thể chứa các thông tin trên trừ khi được gán thêm vào. Do đó, nếu lỗi không chứa thông tin trên thì có thể coi là bug, ngược lại đó chỉ là trường hợp biên. Chương trình có thể chứa nhiều mô đun, ở biên giữa 2 mô đun lỗi được kiểm trả và chuyển đổi định dạng. Bất kì lỗi nào đi qua mô đun mà không tuân theo mô hình lỗi của mô đun đều bị coi là bug. 
+
+### Timeout
+
+- Hệ thống hết tài nguyên: để cho request time out thay vì chờ lâu
+
+   - Nếu request khó có thể lặp lại khi time out
+
+   - Khi không đủ tài nguyên để lưu request (bộ nhớ, đĩa)
+
+   - 
