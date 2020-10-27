@@ -10,6 +10,8 @@
 
 - Dependency inversion: phụ thuộc vào abstract không phụ thuộc vào class cụ thể.
 
+- Nguyên lí Least Knowledge - giao tiếp với thành phần trung gian. Để ý đến số class mà 1 dối tượng tương tác. Tránh có 1 bộ phận lớn class phụ thuộc lẫn nhau.
+
 Khi sử dụng kế thừa, hành vi được thiết lập trong lúc compile, tất cả các lớp con đều kế thừa cùng hành vi. Khi sử dụng hợp thành, hành vi được xác định lúc runtime. Có thể thêm bất kì chức năng nào mà không làm thay đổi logic đã có. 
 
 
@@ -52,5 +54,7 @@ Sử dụng kế thừa để đạt tương thích kiểu (type matching) chứ
 ### Factory
 
 
+### Facade
 
+Không sử dụng đối tượng từ kết quả trả về của 1 hàm khác.
 
