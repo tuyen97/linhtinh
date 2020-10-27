@@ -56,5 +56,15 @@ Sử dụng kế thừa để đạt tương thích kiểu (type matching) chứ
 
 ### Facade
 
+1 phương thức của 1 class nên gọi hàm:
+
+- Component của class
+
+- Object do phương thức đó tạo ra
+
+- Object được truyền làm tham số
+
+- Phương thức khác đối tượng đó 
+
 Không sử dụng đối tượng từ kết quả trả về của 1 hàm khác.
 
