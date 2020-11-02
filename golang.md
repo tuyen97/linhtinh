@@ -104,11 +104,17 @@ Method set của kiểu ```T``` luôn luôn là tập con của method set của
 
 ## Interface
 
-### Method set
+Function, function signature, function prototype
 
-Mỗi kiểu có 1 method set đi kèm:
+Method, Method prototype
 
--
+Method set
+
+Chuyển từ kiểu non-interface sang interface: copy giá trị, ép kiểu, O(n), n là kích cỡ kiểu cần chuyển.
+
+Method là function đặc biệt với tham số đầu vào là receiver part trong method. Lưu ý khi receiver là kiểu con trỏ hoặc giá trị.
+
+Mỗi giá trị của kiểu sẽ sở hữu 1 thành viên immutable của function. 
 
 ## Value Parts
 
@@ -468,7 +474,7 @@ var DeadlineExceeded error = deadlineExceededError{}
 type CancelFunc
 type Context
 
-func Background() Context
+func Background() ContextHere is another example which shows a panicking goroutine exits without being recovered. So the wh
 func TODO() Context
 func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
 func WithDeadline(parent Context, deadline time.Time) (Context, CancelFunc)
@@ -482,9 +488,7 @@ Trong các chương trình thực hiện tính toán đồng thời, việc ng�
 type Context interface {
    // Deadline returns the time when work done on behalf of this
    // context should be canceled. Deadline returns ok==false when no
-   // deadline is set. Successive calls to Deadline return the same
-   // results.
-   Deadline() (deadline time.Time, ok bool)
+   // deadline is set. Successive calls tHere is another example which shows a panicking goroutine exits without being recovered. So the whl)
    // Done returns a channel that's closed when work done on behalf
    // of this context should be canceled. Done may return nil if this
    // context can never be canceled. Successive calls to Done return
@@ -559,3 +563,16 @@ Mặc định thì lỗi không thể chứa các thông tin trên trừ khi đ�
    - Khi không đủ tài nguyên để lưu request (bộ nhớ, đĩa)
 
    - 
+
+### Panic và recover
+
+```golang
+func panic(v interface{})
+func recover() interface{}
+```
+
+- Khi gọi ```panic``` goroutine thực thi đi vào trạng thái exiting, tất cả các defer function được lấy ra từ trong stack và được gọi ngay lập tức theo thứ tự ngược lúc đi vào stack.
+
+- ```recover``` trả về tham số được truyền tới panic.
+
+- Khi gọi ```recover```, trạng thái panic được hủy bỏ và goroutine hiện thời có thể thoát 1 cách bình thường. Nếu cứ để goroutine panic mà không có recover, cả chương trình sẽ bị crash.

@@ -12,6 +12,10 @@
 
 - Nguyên lí Least Knowledge - giao tiếp với thành phần trung gian. Để ý đến số class mà 1 dối tượng tương tác. Tránh có 1 bộ phận lớn class phụ thuộc lẫn nhau.
 
+- Nguyên lí Hollywood: Don't call us, we call you: sử dụng hook để thành phần mức cao xác định nên gọi thành phần bậc thấp khi nào chứ không để thành phần mức thấp gọi trực tiếp thành phần mức cao.
+
+- Single responsibility
+
 Khi sử dụng kế thừa, hành vi được thiết lập trong lúc compile, tất cả các lớp con đều kế thừa cùng hành vi. Khi sử dụng hợp thành, hành vi được xác định lúc runtime. Có thể thêm bất kì chức năng nào mà không làm thay đổi logic đã có. 
 
 
@@ -53,6 +57,9 @@ Sử dụng kế thừa để đạt tương thích kiểu (type matching) chứ
 
 ### Factory
 
+Để lớp con quyết định việc khởi tạo đối tượng
+
+Lớp cha định nghĩa 1 phương thức abstract để tạo đối tượng và 1 phương thức sử dụng phương thức abstract đó.
 
 ### Facade
 
@@ -68,3 +75,19 @@ Sử dụng kế thừa để đạt tương thích kiểu (type matching) chứ
 
 Không sử dụng đối tượng từ kết quả trả về của 1 hàm khác.
 
+### Dependency Injection
+
+Đối tượng không trực tiếp khởi tạo đối tượng khác nên chỉ phụ thuộc vào interface chứ không phụ thuộc vào kiểu cụ thể. Việc khởi tạo đối tượng được giao cho container sau đó được truyền nhờ các phương thức set hoặc constructor.
+ 
+Đây cũng là cách thực hiện nguyên lí Dependency Inversion.
+
+### Template method
+
+Lớp con định nghĩa hành vi, lớp cha định nghĩa việc sử dụng các hành vi - don't call us, we call you.
+
+High level gọi low level
+
+### Composite
+
+Compose object into tree structure,individual objects and compositions uniformly: coi mỗi nút con và các thuộc tính là 1
+ 
