@@ -576,3 +576,25 @@ func recover() interface{}
 - ```recover``` trả về tham số được truyền tới panic.
 
 - Khi gọi ```recover```, trạng thái panic được hủy bỏ và goroutine hiện thời có thể thoát 1 cách bình thường. Nếu cứ để goroutine panic mà không có recover, cả chương trình sẽ bị crash.
+
+```defer``` được đưa register vào stack theo thứ tự trong code, nếu 1 panic xảy ra trước khi defer được register, toàn bộ chương trình crash.
+
+## Uber Zap Logging
+
+Zap cho phép cấu hình định dạng log được in ra thông qua encoder.
+
+Đầu tiên, register encoder với hàm
+
+```go
+func RegisterEncoder(name string, constructor func(zapcore.EncoderConfig) (zapcore.Encoder, error)) error
+```
+
+Tạo instance cho struct Config với thuộc tính ```Encoding``` có giá trị bằng tên encoder đã register
+
+```go
+cfg := zap.Config{
+      Encoding:    ConsoleEncoder
+}
+```
+
+Lưu ý hàm ```constructor``` trả về 1 instance của interface ```zapcore.Encoder``` nên cần implement tất cả method trong interface này. 
